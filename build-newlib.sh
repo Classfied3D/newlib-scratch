@@ -1,4 +1,6 @@
-#!/bin/bash
+#!/bin/sh
+
+version="newlib-4.6.0"
 
 if [ ! -d "build" ]; then
   mkdir build
@@ -9,10 +11,14 @@ if [ ! -d "newlib-cygwin" ]; then
   echo "------ Cloning Newlib"
   rm -rf include
 
-  git clone https://github.com/mirror/newlib-cygwin.git
+  git clone https://sourceware.org/git/newlib-cygwin.git
   if [ ! -d "newlib-cygwin" ]; then
     exit 1
   fi
+
+  cd newlib-cygwin
+  git checkout "${version}"
+  cd ..
 fi
 
 rm -rf build/newlib
