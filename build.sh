@@ -1,37 +1,58 @@
 #!/bin/sh
 
-if [ ! -d "build" ]; then
-  mkdir build
-  mkdir build/scratch
+: "${LLVM_PREFIX:=}"
+: "${LLVM_SUFFIX:=}"
+: "${CC:=${LLVM_PREFIX}clang${LLVM_SUFFIX}}"
+: "${LD:=${LLVM_PREFIX}ld.lld${LLVM_SUFFIX}}"
+: "${AR:=${LLVM_PREFIX}llvm-ar${LLVM_SUFFIX}}"
+: "${RANLIB:=${LLVM_PREFIX}llvm-ranlib${LLVM_SUFFIX}}"
+: "${LLVM_LINK:=${LLVM_PREFIX}llvm-link${LLVM_SUFFIX}}"
+: "${OPT:=${LLVM_PREFIX}opt${LLVM_SUFFIX}}"
+: "${SCRATCHCFLAGS:=}"
+: "${LINKED_OPTLEVEL:=0}"
+
+if [ -z "$SCRATCHCFLAGS" ]; then
+  SCRATCHCFLAGS="${CFLAGS} --target=arm-none-eabi \
+                -m32 -ffreestanding -Os \
+                -fno-vectorize -fno-slp-vectorize \
+                -fno-stack-protector \
+                -emit-llvm -c \
+                -nostdlib"
 fi
 
-if [ ! -d "newlib-cygwin" ]; then
-  echo "Newlib not found. Please run build-newlib.sh first."
-  exit 1
+mkdir -p build
+mkdir -p build/newlib
+
+if [ ! -d "build/newlib/scratch" ]; then
+  # Build newlib
+  cd newlib-cygwin/newlib/
+  mkdir -p build
+  cd build
+
+  CC=$CC LD=$LD AR=$AR RANLIB=$RANLIB CFLAGS="$SCRATCHCFLAGS -Wno-unknown-pragmas -I ../../include/ -I ../libc/include/" \
+    ../configure --host=scratch --enable-newlib-elix-level=1 \
+    --prefix="$(pwd)/../../../build/newlib"
+  make install
+
+  cd ../../..
 fi
 
-clang --target=arm-none-eabi \
-      -m32 -ffreestanding -Os \
-      -D_LDBL_EQ_DBL \
-      -fno-vectorize -fno-slp-vectorize \
-      -fno-stack-protector \
-      -emit-llvm -c \
-      -I newlib-cygwin/include \
-      -I newlib-cygwin/newlib/libc/include/ \
-      demo.c \
-      -o build/demo_unlnk.bc
+# Build demo
+$CC $SCRATCHCFLAGS \
+  -I build/newlib/scratch/include \
+  -I sb3api.h \
+  demo.c \
+  -o build/demo_unlnk.bc
 
-linked_optlevel="0" # -Os optimizes away stdlib calls
+$LLVM_LINK build/demo_unlnk.bc build/newlib/scratch/lib/*.a \
+  --only-needed -o build/demo_unopt.bc
 
-llvm-nm-mp-19 build/demo_unlnk.bc | grep ' T ' | awk '{print $3}' > build/symbols.txt
-llvm-link-mp-19 build/demo_unlnk.bc build/newlib.bc --only-needed -o build/demo_unopt.bc
-opt-mp-19 build/demo_unopt.bc \
-  --internalize-public-api-file=build/symbols.txt \
-  -passes="default<O$linked_optlevel>,internalize,globaldce" \
+$OPT build/demo_unopt.bc \
+  -passes="default<O$LINKED_OPTLEVEL>,globaldce" \
   -vectorize-loops=false \
   -vectorize-slp=false \
   -S -o build/demo.ll
-llvm2scratch build/demo.ll --output build/scratch/demo.sprite3
 
-rm build/demo_unlnk.bc
-rm build/demo_unopt.bc
+llvm2scratch build/demo.ll -o build/demo.sprite3
+
+rm build/demo_unlnk.bc build/demo_unopt.bc
