@@ -9,14 +9,15 @@
 : "${LLVM_LINK:=${LLVM_PREFIX}llvm-link${LLVM_SUFFIX}}"
 : "${OPT:=${LLVM_PREFIX}opt${LLVM_SUFFIX}}"
 : "${SCRATCHCFLAGS:=}"
-: "${LINKED_OPTLEVEL:=0}"
+: "${LINKED_OPTLEVEL:=z}"
 
 if [ -z "$SCRATCHCFLAGS" ]; then
   SCRATCHCFLAGS="${CFLAGS} --target=arm-none-eabi \
-                -m32 -ffreestanding -Os \
+                -m32 -ffreestanding -Oz \
                 -fno-vectorize -fno-slp-vectorize \
                 -fno-stack-protector \
                 -emit-llvm -c \
+                -fno-builtin \
                 -nostdlib"
 fi
 
@@ -53,6 +54,6 @@ $OPT build/demo_unopt.bc \
   -vectorize-slp=false \
   -S -o build/demo.ll
 
-llvm2scratch build/demo.ll -o build/demo.sprite3
+llvm2scratch build/demo.ll -o build/demo.sprite3 -Mall --hide-blocks
 
 rm build/demo_unlnk.bc build/demo_unopt.bc
