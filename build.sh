@@ -8,12 +8,29 @@
 : "${RANLIB:=${LLVM_PREFIX}llvm-ranlib${LLVM_SUFFIX}}"
 : "${LLVM_LINK:=${LLVM_PREFIX}llvm-link${LLVM_SUFFIX}}"
 : "${OPT:=${LLVM_PREFIX}opt${LLVM_SUFFIX}}"
+: "${CFLAGS:=}"
 : "${SCRATCHCFLAGS:=}"
-: "${LINKED_OPTLEVEL:=z}"
+: "$"
+
+INPUT=()
+OPTLEVEL="z"
+
+while getopts "O:" opt; do
+  case $opt in
+    O) OPTLEVEL="$OPTARG" ;;
+  esac
+done
+
+shift $((OPTIND - 1))
+INPUTS+=("$@")
+
+if [ ${#INPUTS[@]} -eq 0 ]; then
+  INPUTS=("demo.c")
+fi
 
 if [ -z "$SCRATCHCFLAGS" ]; then
   SCRATCHCFLAGS="${CFLAGS} --target=arm-none-eabi \
-                -m32 -ffreestanding -Oz \
+                -m32 -ffreestanding -O${OPTLEVEL} \
                 -fno-vectorize -fno-slp-vectorize \
                 -fno-stack-protector \
                 -emit-llvm -c \
@@ -38,22 +55,27 @@ if [ ! -d "build/newlib/scratch" ]; then
   cd ../../..
 fi
 
-# Build demo
-$CC $SCRATCHCFLAGS \
-  -I build/newlib/scratch/include \
-  -I sb3api.h \
-  demo.c \
-  -o build/demo_unlnk.bc
+BC_FILES=()
+for src in "${INPUTS[@]}"; do
+  bc_name="build/$(basename "${src%.*}").bc"
+  $CC $SCRATCHCFLAGS \
+    -I build/newlib/scratch/include \
+    -I sb3api.h \
+    "$src" \
+    -o "$bc_name"
+  BC_FILES+=("$bc_name")
+done
 
-$LLVM_LINK build/demo_unlnk.bc build/newlib/scratch/lib/*.a \
-  --only-needed -o build/demo_unopt.bc
+$LLVM_LINK "${BC_FILES[@]}" build/newlib/scratch/lib/*.a \
+  --only-needed -o build/output_unopt.bc
 
-$OPT build/demo_unopt.bc \
-  -passes="default<O$LINKED_OPTLEVEL>,globaldce" \
+$OPT build/output_unopt.bc \
+  -passes="default<O$OPTLEVEL>,globaldce" \
   -vectorize-loops=false \
   -vectorize-slp=false \
-  -S -o build/demo.ll
+  -S -o build/output.ll
 
-llvm2scratch build/demo.ll -o build/demo.sprite3 -Mall --hide-blocks
+llvm2scratch build/output.ll -o build/output.sprite3 \
+  --debug-scratch-code=build/output.txt
 
-rm build/demo_unlnk.bc build/demo_unopt.bc
+rm "${BC_FILES[@]}" build/output_unopt.bc
