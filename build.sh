@@ -8,6 +8,7 @@
 : "${RANLIB:=${LLVM_PREFIX}llvm-ranlib${LLVM_SUFFIX}}"
 : "${LLVM_LINK:=${LLVM_PREFIX}llvm-link${LLVM_SUFFIX}}"
 : "${OPT:=${LLVM_PREFIX}opt${LLVM_SUFFIX}}"
+: "${L2SFLAGS:=}"
 : "${CFLAGS:=}"
 : "${SCRATCHCFLAGS:=}"
 : "$"
@@ -76,6 +77,6 @@ $OPT build/output_unopt.bc \
   -S -o build/output.ll
 
 llvm2scratch build/output.ll -o build/output.sprite3 \
-  --debug-scratch-code=build/output.txt
+  --debug-scratch-code=build/output.txt $L2SFLAGS
 
 rm "${BC_FILES[@]}" build/output_unopt.bc
