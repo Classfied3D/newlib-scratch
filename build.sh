@@ -76,7 +76,7 @@ $OPT build/output_unopt.bc \
   -vectorize-slp=false \
   -S -o build/output.ll
 
-llvm2scratch build/output.ll -o build/output.sprite3 \
+llvm2scratch build/output.ll -o build/output.sb3 \
   --debug-scratch-code=build/output.txt $L2SFLAGS
 
 rm "${BC_FILES[@]}" build/output_unopt.bc
