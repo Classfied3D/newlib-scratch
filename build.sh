@@ -11,7 +11,6 @@
 : "${L2SFLAGS:=}"
 : "${CFLAGS:=}"
 : "${SCRATCHCFLAGS:=}"
-: "$"
 
 INPUT=()
 OPTLEVEL="z"
