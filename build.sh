@@ -34,7 +34,6 @@ if [ -z "$SCRATCHCFLAGS" ]; then
                 -fno-vectorize -fno-slp-vectorize \
                 -fno-stack-protector \
                 -emit-llvm -c \
-                -fno-builtin \
                 -nostdlib"
 fi
 
@@ -69,10 +68,15 @@ done
 $LLVM_LINK "${BC_FILES[@]}" build/newlib/scratch/lib/*.a \
   --only-needed -o build/output_unopt.bc
 
+# TODO: allow passing in a public api list, or allow compiling a library and make
+# a public api list from it's functions
+echo "main" > build/public.txt
+
 $OPT build/output_unopt.bc \
-  -passes="default<O$OPTLEVEL>,globaldce" \
+  -passes="default<O$OPTLEVEL>,internalize,globaldce" \
   -vectorize-loops=false \
   -vectorize-slp=false \
+  -internalize-public-api-file=build/public.txt \
   -S -o build/output.ll
 
 llvm2scratch build/output.ll -o build/output.sb3 \
