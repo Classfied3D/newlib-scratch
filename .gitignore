@@ -1,3 +1,5 @@
 **/.DS_Store
 **/build
 /projects
+profile.out
+profile.svg
