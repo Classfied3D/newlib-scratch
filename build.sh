@@ -80,6 +80,7 @@ $OPT build/output_unopt.bc \
   -S -o build/output.ll
 
 llvm2scratch build/output.ll -o build/output.sb3 \
-  --debug-scratch-code=build/output.txt $L2SFLAGS
+  --debug-scratch-text=build/output.txt \
+  --debug-scratchblocks=build/blocks.txt $L2SFLAGS \
 
 rm "${BC_FILES[@]}" build/output_unopt.bc
