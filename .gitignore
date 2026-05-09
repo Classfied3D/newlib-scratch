@@ -3,3 +3,5 @@
 /projects
 profile.out
 profile.svg
+newlib-cygwin/config.log
+newlib-cygwin/config.status
