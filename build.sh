@@ -46,8 +46,10 @@ if [ ! -d "build/newlib/scratch" ]; then
   mkdir -p build
   cd build
 
+  # --enable-newlib-elix-level=1 disables stack protector
   CC=$CC LD=$LD AR=$AR RANLIB=$RANLIB CFLAGS="$SCRATCHCFLAGS -Wno-unknown-pragmas -I ../../include/ -I ../libc/include/" \
-    ../configure --host=scratch --enable-newlib-elix-level=1 \
+    ../configure --host=scratch \
+    --enable-newlib-elix-level=1 --enable-newlib-nano-formatted-io --enable-newlib-nano-malloc --enable-newlib-reent-small \
     --prefix="$(pwd)/../../../build/newlib"
   make install
 
